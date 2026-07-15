@@ -41,12 +41,15 @@ class Policy:
     owner: str = "unassigned"
     valid_until: str | None = None
     sensitive: bool = False
+    external_ai_allowed: bool = False
 
 
 @dataclass(frozen=True)
 class SearchResult:
     policy: Policy
     score: float
+    passage: str = ""
+    chunk_id: str = ""
 
 
 @dataclass(frozen=True)

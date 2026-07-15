@@ -30,13 +30,14 @@ def process_request(
         allowed = accessible_policies(policies, user)
         results = retriever.search(text, allowed)
         sources = tuple(result for result in results if result.score >= MIN_RETRIEVAL_SCORE)
+        sources = generator.approved_sources(sources)
         route = route_after_search(classification, bool(sources))
         if route.action is Action.ESCALATE_HUMAN:
             message = "Aucune politique accessible ne permet de préparer une réponse fiable."
             decision = Decision.ESCALATE
         else:
             try:
-                message = generator.draft_answer(sources)
+                message = generator.draft_answer(sources, question=text)
                 decision = Decision.ANSWER
             except ValueError:
                 route = route_after_search(classification, False)

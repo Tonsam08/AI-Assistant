@@ -17,6 +17,7 @@ def load_policies(path: Path) -> list[Policy]:
             owner=item.get("owner", "unassigned"),
             valid_until=item.get("valid_until"),
             sensitive=item.get("sensitive", False),
+            external_ai_allowed=item.get("external_ai_allowed", False),
         )
         for item in payload
     ]

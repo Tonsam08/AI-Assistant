@@ -1,3 +1,6 @@
 streamlit>=1.44,<2
 chromadb>=1.0,<2
+openai>=1.75,<3
+python-dotenv>=1.0,<2
+sentence-transformers>=3.4,<6
 pytest>=8,<9
