@@ -1,6 +1,6 @@
 # Prototype d’assistant RH
 
-Prototype démontrable du parcours principal : classification, détection de sensibilité, contrôle d’accès documentaire, recherche de politiques et préparation d’une réponse soumise à validation humaine.
+Prototype démontrable du parcours principal : nettoyage d’e-mails, classification par embeddings, détection de sensibilité, routage structuré, contrôle d’accès documentaire, recherche de politiques, réponse citée, audit et validation humaine.
 
 Toutes les données fournies sont fictives.
 
@@ -34,20 +34,23 @@ pytest -q
 ## Réel dans ce prototype
 
 - interface Streamlit ;
-- classifieur unique sujet/sensibilité, déterministe et testable ;
+- Mail Scrubber MIME/HTML et inventaire des pièces jointes ;
+- classifieur unique sujet/sensibilité sur embeddings locaux, déterministe et testable ;
+- routeur produisant une décision JSON et une liste fermée d’outils ;
 - filtrage des politiques par pays et groupe avant la recherche ;
 - recherche ChromaDB lorsqu’elle est disponible ;
 - réponse avec sources et validation humaine obligatoire ;
 - escalade des demandes sensibles, inconnues ou sans source fiable ;
 - tests automatisés du parcours principal.
+- journal d’audit SQLite et adaptateurs simulés Outlook/Jira.
 
 ## Simulé ou provisoire
 
 - les politiques sont fictives et chargées depuis un fichier JSON ;
-- les embeddings sont locaux et déterministes, pas un modèle multilingue de production ;
+- les embeddings sont locaux et déterministes, pas encore le modèle multilingue approuvé ;
 - la réponse est assemblée depuis des extraits, sans LLM ;
 - l’identité et les groupes de l’utilisateur sont sélectionnés dans l’interface ;
-- aucune connexion SharePoint, Outlook ou Claude ;
+- le connecteur SharePoint Graph est un contrat non configuré ; Outlook et Jira sont simulés ;
 - la validation humaine est représentée par un statut, sans file de traitement persistante.
 
 ## Prochaine intégration minimale

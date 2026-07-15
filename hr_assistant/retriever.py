@@ -40,10 +40,12 @@ class LocalRetriever:
 class ChromaRetriever:
     """Recherche ChromaDB avec embedding local interchangeable."""
 
-    def __init__(self) -> None:
+    def __init__(self, persist_directory: str | None = None) -> None:
         import chromadb
-
-        self._client = chromadb.EphemeralClient()
+        self._client = (
+            chromadb.PersistentClient(path=persist_directory)
+            if persist_directory else chromadb.EphemeralClient()
+        )
 
     def search(self, query: str, policies: list[Policy], limit: int = 3) -> list[SearchResult]:
         if not policies:

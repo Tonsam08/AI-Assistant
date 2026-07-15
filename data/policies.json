@@ -4,6 +4,9 @@
     "title": "Congés payés — France",
     "country": "FR",
     "allowed_groups": ["employees"],
+    "language": "fr",
+    "owner": "demo-fr-hr",
+    "valid_until": "2027-12-31",
     "content": "Les demandes de congés doivent être déposées dans l’outil RH et approuvées par le responsable avant le départ. Pour cette démonstration, le délai conseillé est de deux semaines."
   },
   {
@@ -11,6 +14,9 @@
     "title": "Télétravail — France",
     "country": "FR",
     "allowed_groups": ["employees"],
+    "language": "fr",
+    "owner": "demo-fr-hr",
+    "valid_until": "2027-12-31",
     "content": "Le télétravail dépend de l’éligibilité du poste et de l’accord du responsable. Les jours doivent être enregistrés dans l’outil prévu à cet effet."
   },
   {
@@ -18,6 +24,10 @@
     "title": "Correction de paie — France",
     "country": "FR",
     "allowed_groups": ["hr"],
+    "language": "fr",
+    "owner": "demo-payroll",
+    "valid_until": "2027-12-31",
+    "sensitive": true,
     "content": "Les corrections de paie sont traitées par l’équipe RH habilitée. Cette politique n’est pas accessible aux employés ordinaires."
   },
   {
@@ -25,6 +35,9 @@
     "title": "Justificatifs de transport",
     "country": "GLOBAL",
     "allowed_groups": ["employees"],
+    "language": "fr",
+    "owner": "demo-benefits",
+    "valid_until": "2027-12-31",
     "content": "Le justificatif nominatif et la preuve de paiement doivent être transmis selon la procédure locale de remboursement des transports."
   }
 ]
