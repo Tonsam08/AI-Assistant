@@ -3,4 +3,5 @@ __pycache__/
 .pytest_cache/
 *.pyc
 .env
+.local/
 .streamlit/secrets.toml

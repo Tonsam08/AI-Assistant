@@ -13,6 +13,10 @@ def load_policies(path: Path) -> list[Policy]:
             country=item["country"],
             allowed_groups=frozenset(item["allowed_groups"]),
             content=item["content"],
+            language=item.get("language", "en"),
+            owner=item.get("owner", "unassigned"),
+            valid_until=item.get("valid_until"),
+            sensitive=item.get("sensitive", False),
         )
         for item in payload
     ]
@@ -23,4 +27,5 @@ def accessible_policies(policies: list[Policy], user: UserContext) -> list[Polic
         policy for policy in policies
         if policy.country in {user.country, "GLOBAL"}
         and (not policy.allowed_groups or policy.allowed_groups & user.groups)
+        and not policy.sensitive
     ]

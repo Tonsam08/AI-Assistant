@@ -1,0 +1,9 @@
+[
+  {"text": "Je souhaite prendre des congés", "topic": "leave", "sensitive": false},
+  {"text": "How do I request annual leave?", "topic": "leave", "sensitive": false},
+  {"text": "Ich brauche meine Lohnabrechnung", "topic": "payroll", "sensitive": false},
+  {"text": "Necesito trabajar desde casa en remoto", "topic": "remote_work", "sensitive": false},
+  {"text": "Comment transmettre mon justificatif de transport ?", "topic": "benefits", "sensitive": false},
+  {"text": "I want to report harassment", "topic": "unknown", "sensitive": true},
+  {"text": "Je subis une discrimination", "topic": "unknown", "sensitive": true}
+]

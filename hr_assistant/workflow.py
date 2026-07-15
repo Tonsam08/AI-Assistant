@@ -1,51 +1,48 @@
+from .audit import AuditStore
 from .classifier import classify_request
-from .models import Decision, UserContext, WorkflowResult
+from .generator import ControlledDraftGenerator
+from .models import Action, Decision, UserContext, WorkflowResult
 from .policies import accessible_policies
+from .router import initial_route, route_after_search
 
 
-MIN_CLASSIFICATION_CONFIDENCE = 0.60
 MIN_RETRIEVAL_SCORE = 0.12
 
 
-def process_request(text: str, user: UserContext, policies, retriever) -> WorkflowResult:
+def process_request(
+    text: str, user: UserContext, policies, retriever,
+    generator=None, audit_store: AuditStore | None = None,
+) -> WorkflowResult:
     text = text.strip()
+    generator = generator or ControlledDraftGenerator()
     classification = classify_request(text)
+    route = initial_route(classification)
 
-    if not text:
-        return WorkflowResult(
-            Decision.REQUEST_INFO,
-            classification,
-            "Merci de préciser votre demande afin que les RH puissent la traiter.",
-        )
-    if classification.sensitive:
-        return WorkflowResult(
-            Decision.ESCALATE,
-            classification,
-            "Cette demande est sensible et doit être examinée par une personne des RH.",
-        )
-    if classification.missing_information or classification.confidence < MIN_CLASSIFICATION_CONFIDENCE:
-        return WorkflowResult(
-            Decision.REQUEST_INFO,
-            classification,
-            "Le sujet de la demande n’est pas assez précis. Merci d’ajouter le contexte nécessaire.",
-        )
+    if route.action is Action.ESCALATE_HUMAN:
+        message = "Cette demande doit être examinée par une personne des RH."
+        decision = Decision.ESCALATE
+        sources = ()
+    elif route.action is Action.REQUEST_INFORMATION:
+        message = generator.draft_information_request()
+        decision = Decision.REQUEST_INFO
+        sources = ()
+    else:
+        allowed = accessible_policies(policies, user)
+        results = retriever.search(text, allowed)
+        sources = tuple(result for result in results if result.score >= MIN_RETRIEVAL_SCORE)
+        route = route_after_search(classification, bool(sources))
+        if route.action is Action.ESCALATE_HUMAN:
+            message = "Aucune politique accessible ne permet de préparer une réponse fiable."
+            decision = Decision.ESCALATE
+        else:
+            try:
+                message = generator.draft_answer(sources)
+                decision = Decision.ANSWER
+            except ValueError:
+                route = route_after_search(classification, False)
+                message = "Les sources trouvées ne peuvent pas être utilisées en sécurité."
+                decision = Decision.ESCALATE
+                sources = ()
 
-    allowed = accessible_policies(policies, user)
-    results = retriever.search(text, allowed)
-    relevant = tuple(result for result in results if result.score >= MIN_RETRIEVAL_SCORE)
-    if not relevant:
-        return WorkflowResult(
-            Decision.ESCALATE,
-            classification,
-            "Aucune politique accessible ne permet de préparer une réponse fiable.",
-        )
-
-    excerpts = "\n\n".join(
-        f"• {result.policy.title} : {result.policy.content}" for result in relevant[:2]
-    )
-    message = (
-        "Réponse préparée à partir des politiques accessibles :\n\n"
-        f"{excerpts}\n\n"
-        "Cette réponse doit être validée par les RH avant envoi."
-    )
-    return WorkflowResult(Decision.ANSWER, classification, message, relevant)
+    trace_id = audit_store.record(text, route) if audit_store else None
+    return WorkflowResult(decision, classification, message, sources, route, trace_id)

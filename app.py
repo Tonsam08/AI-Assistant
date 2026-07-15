@@ -3,6 +3,7 @@ from pathlib import Path
 import streamlit as st
 
 from hr_assistant.models import Decision, UserContext
+from hr_assistant.audit import AuditStore
 from hr_assistant.policies import load_policies
 from hr_assistant.retriever import ChromaRetriever, LocalRetriever
 from hr_assistant.workflow import process_request
@@ -21,6 +22,7 @@ def get_retriever():
 
 policies = load_policies(Path(__file__).parent / "data" / "policies.json")
 retriever, retriever_name = get_retriever()
+audit_store = AuditStore()
 
 st.title("Assistant RH")
 st.caption("Prototype avec données fictives — aucune réponse n’est envoyée automatiquement")
@@ -39,7 +41,7 @@ request = st.text_area(
 
 if st.button("Préparer la réponse", type="primary", use_container_width=True):
     user = UserContext("demo-user", country, frozenset({role}))
-    result = process_request(request, user, policies, retriever)
+    result = process_request(request, user, policies, retriever, audit_store=audit_store)
 
     st.subheader("Décision")
     labels = {
@@ -55,6 +57,8 @@ if st.button("Préparer la réponse", type="primary", use_container_width=True):
             "topic": result.classification.topic,
             "sensitive": result.classification.sensitive,
             "classification_confidence": result.classification.confidence,
+            "route": result.route.as_dict() if result.route else None,
+            "trace_id": result.trace_id,
             "sources": [
                 {"title": item.policy.title, "score": round(item.score, 3)}
                 for item in result.sources
