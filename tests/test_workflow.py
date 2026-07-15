@@ -54,9 +54,20 @@ def test_country_access_is_enforced():
     assert {policy.policy_id for policy in allowed} == {"global-benefits-001"}
 
 
-def test_chroma_retrieval_respects_pre_filtered_scope():
+def test_chroma_retrieval_respects_pre_filtered_scope(tmp_path):
+    class FakeMultilingualEmbeddings:
+        def embed(self, texts):
+            return [[float("congé" in text.lower()), float("paie" in text.lower())] for text in texts]
+
+        def embed_query(self, text):
+            return self.embed([text])[0]
+
     allowed = accessible_policies(POLICIES, EMPLOYEE)
-    results = ChromaRetriever().search("demande de congés vacances", allowed)
+    retriever = ChromaRetriever(
+        FakeMultilingualEmbeddings(), persist_directory=str(tmp_path), min_score=0.1,
+    )
+    retriever.index_policies(POLICIES)
+    results = retriever.search("demande de congés vacances", allowed)
     assert results
     assert all(item.policy.policy_id != "fr-payroll-hr-001" for item in results)
 
