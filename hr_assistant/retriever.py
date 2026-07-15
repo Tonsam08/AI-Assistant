@@ -9,7 +9,15 @@ from .models import Policy, SearchResult
 
 
 def _tokens(text: str) -> list[str]:
-    return re.findall(r"[\wÀ-ÿ'-]+", text.lower())
+    stopwords = {
+        "a", "au", "aux", "avec", "ce", "ces", "comment", "dans", "de", "des",
+        "du", "en", "et", "je", "la", "le", "les", "ma", "mes", "mon", "pour",
+        "que", "qui", "sur", "un", "une", "the", "to", "and", "how", "my",
+    }
+    return [
+        token for token in re.findall(r"[\wÀ-ÿ'-]+", text.lower())
+        if len(token) > 2 and token not in stopwords
+    ]
 
 
 def _local_embedding(text: str, dimensions: int = 2048) -> list[float]:
@@ -31,11 +39,17 @@ class LocalRetriever:
     """Moteur sans API utilisé par les tests. Le runtime normal utilise ChromaRetriever."""
 
     def search(self, query: str, policies: list[Policy], limit: int = 5) -> list[SearchResult]:
-        query_vector = _local_embedding(query)
+        query_tokens = set(_tokens(query))
         results = []
         for policy in policies:
             for chunk in chunk_policy(policy):
-                score = _cosine(query_vector, _local_embedding(f"{policy.title} {chunk.text}"))
+                title_tokens = set(_tokens(policy.title))
+                passage_tokens = set(_tokens(chunk.text))
+                overlap = query_tokens & (title_tokens | passage_tokens)
+                if not overlap:
+                    continue
+                title_matches = len(query_tokens & title_tokens)
+                score = min(1.0, (len(overlap) + title_matches) / max(len(query_tokens), 1))
                 results.append(SearchResult(policy, score, chunk.text, chunk.chunk_id))
         return sorted(results, key=lambda item: item.score, reverse=True)[:limit]
 
