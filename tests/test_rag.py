@@ -56,3 +56,13 @@ def test_openai_generator_rejects_unapproved_policy():
     generator = OpenAIDraftGenerator(client=SimpleNamespace(responses=None), model="test")
     with pytest.raises(ExternalGenerationNotAllowed):
         generator.draft_answer((source(allowed=False),), "Question")
+
+
+def test_openai_api_failure_is_converted_to_safe_workflow_error():
+    def fail(**kwargs):
+        raise ConnectionError("offline")
+
+    client = SimpleNamespace(responses=SimpleNamespace(create=fail))
+    generator = OpenAIDraftGenerator(client=client, model="test")
+    with pytest.raises(ValueError, match="temporarily unavailable"):
+        generator.draft_answer((source(),), "Question")

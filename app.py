@@ -19,6 +19,8 @@ st.set_page_config(page_title="Assistant RH — Prototype", page_icon="🧭", la
 
 @st.cache_resource
 def get_retriever():
+    if os.getenv("EMBEDDING_BACKEND", "multilingual").lower() == "lexical":
+        return LocalRetriever(), "moteur lexical de secours (configuré)", None
     try:
         provider = SentenceTransformerEmbeddingProvider(
             model_name=os.getenv(
@@ -31,6 +33,8 @@ def get_retriever():
             persist_directory=os.getenv("CHROMA_PERSIST_DIRECTORY", ".local/chroma"),
             min_score=float(os.getenv("RAG_MIN_SCORE", "0.35")),
         )
+        policies_to_index = load_policies(Path(__file__).parent / "data" / "policies.json")
+        retriever.index_policies(policies_to_index)
         return retriever, "ChromaDB + embeddings multilingues locaux", None
     except Exception as exc:
         return LocalRetriever(), "moteur lexical de secours", str(exc)
@@ -45,8 +49,6 @@ def get_generator():
 
 policies = load_policies(Path(__file__).parent / "data" / "policies.json")
 retriever, retriever_name, retriever_error = get_retriever()
-if isinstance(retriever, ChromaRetriever):
-    retriever.index_policies(policies)
 generator, generator_name = get_generator()
 audit_store = AuditStore()
 

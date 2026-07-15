@@ -39,6 +39,13 @@ def test_leave_request_returns_reviewable_answer_with_source():
     assert result.sources
     assert result.sources[0].policy.policy_id == "fr-leave-001"
     assert "validée par les RH" in result.message
+    assert all(item.policy.policy_id == "fr-leave-001" for item in result.sources)
+
+
+def test_local_fallback_does_not_return_unrelated_passages():
+    allowed = accessible_policies(POLICIES, EMPLOYEE)
+    results = LocalRetriever().search("Comment déposer une demande de congés et partir en vacances ?", allowed)
+    assert {item.policy.policy_id for item in results} == {"fr-leave-001"}
 
 
 def test_document_access_is_filtered_before_retrieval():
