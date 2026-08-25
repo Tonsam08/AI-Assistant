@@ -54,6 +54,33 @@ class LocalRetriever:
         return sorted(results, key=lambda item: item.score, reverse=True)[:limit]
 
 
+class InMemoryEmbeddingRetriever:
+    """Recherche sémantique sans persistance lorsque ChromaDB ne peut pas démarrer."""
+
+    def __init__(self, embedding_provider, min_score: float = 0.35) -> None:
+        self.embedding_provider = embedding_provider
+        self.min_score = min_score
+
+    def search(self, query: str, policies: list[Policy], limit: int = 5) -> list[SearchResult]:
+        chunks = [chunk for policy in policies for chunk in chunk_policy(policy)]
+        if not chunks:
+            return []
+        policies_by_id = {policy.policy_id: policy for policy in policies}
+        query_embedding = self.embedding_provider.embed_query(query)
+        embeddings = self.embedding_provider.embed([chunk.text for chunk in chunks])
+        results = [
+            SearchResult(
+                policies_by_id[chunk.policy_id],
+                _cosine(query_embedding, embedding),
+                chunk.text,
+                chunk.chunk_id,
+            )
+            for chunk, embedding in zip(chunks, embeddings)
+        ]
+        return [item for item in sorted(results, key=lambda item: item.score, reverse=True)
+                if item.score >= self.min_score][:limit]
+
+
 class ChromaRetriever:
     """Index ChromaDB persistant alimenté par un fournisseur d'embeddings multilingues."""
 

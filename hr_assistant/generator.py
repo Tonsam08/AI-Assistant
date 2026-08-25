@@ -38,7 +38,7 @@ class ExternalGenerationNotAllowed(ValueError):
 class OpenAIDraftGenerator(ControlledDraftGenerator):
     """Génération RAG via l'API OpenAI Responses, sans recherche autonome du modèle."""
 
-    def __init__(self, client=None, model: str = "gpt-5.6-terra") -> None:
+    def __init__(self, client=None, model: str = "gpt-4.1-mini") -> None:
         if client is None:
             from openai import OpenAI
 

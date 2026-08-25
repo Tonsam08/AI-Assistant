@@ -9,7 +9,7 @@ from hr_assistant.audit import AuditStore
 from hr_assistant.embeddings import SentenceTransformerEmbeddingProvider
 from hr_assistant.generator import ControlledDraftGenerator, OpenAIDraftGenerator
 from hr_assistant.policies import load_policies
-from hr_assistant.retriever import ChromaRetriever, LocalRetriever
+from hr_assistant.retriever import ChromaRetriever, InMemoryEmbeddingRetriever, LocalRetriever
 from hr_assistant.workflow import process_request
 
 
@@ -22,20 +22,30 @@ def get_retriever():
     if os.getenv("EMBEDDING_BACKEND", "multilingual").lower() == "lexical":
         return LocalRetriever(), "moteur lexical de secours (configuré)", None
     try:
+        hf_cache = Path(
+            os.getenv("HF_HOME", str(Path(__file__).parent / ".local" / "huggingface"))
+        ) / "hub"
         provider = SentenceTransformerEmbeddingProvider(
             model_name=os.getenv(
                 "MULTILINGUAL_EMBEDDING_MODEL",
                 "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-            )
-        )
-        retriever = ChromaRetriever(
-            provider,
-            persist_directory=os.getenv("CHROMA_PERSIST_DIRECTORY", ".local/chroma"),
-            min_score=float(os.getenv("RAG_MIN_SCORE", "0.35")),
+            ),
+            cache_folder=str(hf_cache),
+            local_files_only=hf_cache.exists(),
         )
         policies_to_index = load_policies(Path(__file__).parent / "data" / "policies.json")
-        retriever.index_policies(policies_to_index)
-        return retriever, "ChromaDB + embeddings multilingues locaux", None
+        min_score = float(os.getenv("RAG_MIN_SCORE", "0.35"))
+        try:
+            retriever = ChromaRetriever(
+                provider,
+                persist_directory=os.getenv("CHROMA_PERSIST_DIRECTORY", ".local/chroma"),
+                min_score=min_score,
+            )
+            retriever.index_policies(policies_to_index)
+            return retriever, "ChromaDB + embeddings multilingues locaux", None
+        except Exception as exc:
+            retriever = InMemoryEmbeddingRetriever(provider, min_score=min_score)
+            return retriever, "embeddings multilingues locaux (index mémoire)", str(exc)
     except Exception as exc:
         return LocalRetriever(), "moteur lexical de secours", str(exc)
 
@@ -43,8 +53,8 @@ def get_retriever():
 @st.cache_resource
 def get_generator():
     if os.getenv("OPENAI_API_KEY"):
-        return OpenAIDraftGenerator(model=os.getenv("OPENAI_CHAT_MODEL", "gpt-5.6-terra")), "OpenAI Responses API"
-    return ControlledDraftGenerator(), "générateur local de secours"
+        return OpenAIDraftGenerator(model=os.getenv("OPENAI_CHAT_MODEL", "gpt-4.1-mini")), "OpenAI Responses API"
+    return ControlledDraftGenerator(), "générateur local contrôlé (clé OpenAI non configurée)"
 
 
 policies = load_policies(Path(__file__).parent / "data" / "policies.json")
@@ -62,7 +72,10 @@ with st.sidebar:
     st.caption(f"Recherche : {retriever_name}")
     st.caption(f"Génération : {generator_name}")
     if retriever_error:
-        st.warning("Le modèle multilingue local n'est pas disponible. Recherche de secours activée.")
+        if isinstance(retriever, InMemoryEmbeddingRetriever):
+            st.info("ChromaDB n'est pas disponible : la recherche multilingue utilise un index mémoire.")
+        else:
+            st.warning("Le modèle multilingue local n'est pas disponible. Recherche lexicale activée.")
 
 request = st.text_area(
     "Demande RH",

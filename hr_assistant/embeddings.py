@@ -8,11 +8,17 @@ class SentenceTransformerEmbeddingProvider:
         self,
         model=None,
         model_name: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+        cache_folder: str | None = None,
+        local_files_only: bool = False,
     ) -> None:
         if model is None:
             from sentence_transformers import SentenceTransformer
 
-            model = SentenceTransformer(model_name)
+            model = SentenceTransformer(
+                model_name,
+                cache_folder=cache_folder,
+                local_files_only=local_files_only,
+            )
         self.model = model
         self.model_name = model_name
 
